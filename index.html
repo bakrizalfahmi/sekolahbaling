@@ -8,8 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary-color: #005A9C; /* Biru korporat PPD */
-            --secondary-color: #4CAF50; /* Hijau untuk menonjol */
+            --primary-color: #005A9C;
+            --secondary-color: #4CAF50;
             --background-color: #f4f7fc;
             --card-bg-color: #ffffff;
             --text-color: #333333;
@@ -27,7 +27,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -60,8 +60,8 @@
             border-radius: 8px;
             box-shadow: var(--shadow);
             margin-bottom: 25px;
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             align-items: center;
         }
@@ -71,17 +71,39 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 1em;
-            flex-grow: 1;
+            width: 100%;
         }
-        .filters-section input[type="text"] {
-            min-width: 250px; /* Lebar minimum untuk kotak carian */
+        .filters-section select[multiple] {
+            height: 120px; /* Tinggi untuk dropdown multi-pilihan */
         }
-
+        #resetButton {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #resetButton:hover {
+            background-color: #d32f2f;
+        }
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-item label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+        }
+        
         /* Kotak Statistik */
         .stats-grid {
             display: grid;
-            /* Diubah suai untuk memuatkan 3 lajur dengan lebih baik */
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             margin-bottom: 25px;
         }
@@ -95,10 +117,10 @@
         .stat-card h3 {
             margin: 0 0 10px 0;
             color: var(--primary-color);
-            font-size: 1.1em;
+            font-size: 1em;
         }
         .stat-card .stat-number {
-            font-size: 2.5em;
+            font-size: 2.2em;
             font-weight: bold;
         }
         .chart-container {
@@ -106,6 +128,26 @@
             height: 250px;
             width: 100%;
         }
+        
+        /* Susun Atur Grid untuk Kotak Statistik */
+        .card-span-1 { grid-column: span 1; }
+        .card-span-2 { grid-column: span 2; }
+        .card-span-4 { grid-column: span 4; }
+        .card-large .chart-container {
+            height: 350px; /* Carta lebih tinggi */
+        }
+
+        /* Responsif untuk Grid */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .card-span-1, .card-span-2, .card-span-4 { grid-column: span 2; }
+            .stat-card.card-span-1 { grid-column: span 1; } /* Kekalkan 2 kotak kecil sebaris */
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .card-span-1, .card-span-2, .card-span-4 { grid-column: span 1; }
+        }
+
 
         /* Jadual Data */
         .table-wrapper {
@@ -154,55 +196,82 @@
             <p>Pejabat Pendidikan Daerah Baling</p>
         </header>
 
-        <!-- SUSUN ATUR PENAPIS TELAH DIUBAH SUAI -->
         <section class="filters-section">
-            <select id="jenisFilter">
-                <option value="">Semua Jenis Sekolah</option>
-            </select>
-            <select id="kategoriFilter">
-                <option value="">Semua Kategori Institusi</option>
-            </select>
-            <select id="lokasiFilter">
-                <option value="">Semua Lokasi</option>
-            </select>
-            <select id="ptisFilter">
-                <option value="">Semua PTIS</option>
-            </select>
-            <input type="text" id="searchInput" placeholder="Cari nama sekolah, kod, PGB...">
+            <div class="filter-item">
+                <label for="jenisFilter">Jenis Sekolah (Ctrl+Klik untuk multi-pilihan)</label>
+                <select id="jenisFilter" multiple></select>
+            </div>
+            <div class="filter-item">
+                <label for="kategoriFilter">Kategori Institusi</label>
+                <select id="kategoriFilter" multiple></select>
+            </div>
+            <div class="filter-item">
+                <label for="lokasiFilter">Lokasi</label>
+                <select id="lokasiFilter" multiple></select>
+            </div>
+            <div class="filter-item">
+                <label for="ptisFilter">PTIS</label>
+                <select id="ptisFilter" multiple></select>
+            </div>
+            <div class="filter-item">
+                <label for="searchInput">Carian Pantas</label>
+                <input type="text" id="searchInput" placeholder="Cari nama sekolah, kod...">
+            </div>
+            <div class="filter-item">
+                <label>&nbsp;</label>
+                <button id="resetButton">RESET SEMUA</button>
+            </div>
         </section>
 
-        <!-- KOTAK STATISTIK DENGAN CARTA JAWATAN BAHARU -->
         <section class="stats-grid">
-            <div class="stat-card">
+            <!-- BARIS 1: KOTAK STATISTIK KECIL -->
+            <div class="stat-card card-span-1">
                 <h3>Jumlah Sekolah</h3>
                 <p id="jumlahSekolah" class="stat-number">0</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card card-span-1">
+                <h3>Jumlah Pengetua</h3>
+                <p id="jumlahPengetua" class="stat-number">0</p>
+            </div>
+            <div class="stat-card card-span-1">
+                <h3>Jumlah Guru Besar</h3>
+                <p id="jumlahGuruBesar" class="stat-number">0</p>
+            </div>
+            <div class="stat-card card-span-1">
+                <h3>Tiada Pengisian</h3>
+                <p id="jumlahTiadaPengisian" class="stat-number">0</p>
+            </div>
+            
+            <!-- BARIS 2: KOTAK CARTA SEDERHANA -->
+            <div class="stat-card card-span-2">
                 <h3>PGB Mengikut Jantina</h3>
                 <div class="chart-container">
                     <canvas id="jantinaChart"></canvas>
                 </div>
             </div>
-            <!-- CARTA JAWATAN BAHARU DITAMBAH DI SINI -->
-            <div class="stat-card">
+            <div class="stat-card card-span-2">
                 <h3>Mengikut Jawatan</h3>
                 <div class="chart-container">
                     <canvas id="jawatanChart"></canvas>
                 </div>
             </div>
-            <div class="stat-card">
-                <h3>Mengikut Jenis Sekolah</h3>
+
+            <!-- BARIS 3: KOTAK CARTA BESAR -->
+            <div class="stat-card card-span-2 card-large">
+                <h3>Mengikut Jenis Sekolah (Bar Menegak)</h3>
                 <div class="chart-container">
                     <canvas id="jenisSekolahChart"></canvas>
                 </div>
             </div>
-            <div class="stat-card">
-                <h3>Mengikut Kategori Institusi</h3>
+            <div class="stat-card card-span-2 card-large">
+                <h3>Mengikut Kategori (Bar Melintang)</h3>
                 <div class="chart-container">
                     <canvas id="kategoriInstitusiChart"></canvas>
                 </div>
             </div>
-             <div class="stat-card">
+
+             <!-- BARIS 4: KOTAK CARTA LEBAR -->
+            <div class="stat-card card-span-4">
                 <h3>Mengikut Lokasi Sekolah</h3>
                 <div class="chart-container">
                     <canvas id="lokasiSekolahChart"></canvas>
@@ -226,9 +295,7 @@
                         <th>ALAMAT SEKOLAH</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Data akan dimasukkan di sini oleh JavaScript -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </section>
     </div>
@@ -248,93 +315,109 @@
     const kategoriFilter = document.getElementById('kategoriFilter');
     const lokasiFilter = document.getElementById('lokasiFilter');
     const ptisFilter = document.getElementById('ptisFilter');
+    const resetButton = document.getElementById('resetButton');
 
     let allSchoolData = [];
     let chartInstances = {};
 
-    // Fungsi utama yang dipanggil selepas halaman dimuatkan
     document.addEventListener('DOMContentLoaded', async () => {
         try {
-            const response = await fetch(WEB_APP_URL);
-            if (!response.ok) {
-                throw new Error(`Ralat Rangkaian: ${response.statusText}`);
+            if (WEB_APP_URL === 'URL_WEB_APP_ANDA_DI_SINI' || !WEB_APP_URL.startsWith('https://script.google.com/')) {
+                throw new Error('URL Web App tidak sah. Sila gantikan "URL_WEB_APP_ANDA_DI_SINI" dalam kod dengan URL Google Apps Script Web App anda yang sebenar.');
             }
+            const response = await fetch(WEB_APP_URL);
+            if (!response.ok) throw new Error(`Ralat Rangkaian: ${response.statusText}`);
             allSchoolData = await response.json();
+            if (allSchoolData.error) throw new Error(`Ralat dari Apps Script: ${allSchoolData.error}`);
             
             loadingElement.style.display = 'none';
             dataTable.style.display = 'table';
             
-            // Panggil fungsi untuk memaparkan data & carta awal
             populateFilters();
             displayData(allSchoolData);
             setupEventListeners();
         } catch (error) {
-            loadingElement.textContent = 'Gagal memuatkan data. Sila pastikan URL Web App adalah betul dan skrip telah dilaksanakan dengan kebenaran "Anyone".';
+            loadingElement.textContent = `Ralat: ${error.message}`;
             loadingElement.style.color = 'red';
-            console.error('Ralat Fetch:', error);
+            console.error('Ralat Pemuatan Data:', error);
         }
     });
 
-    // Fungsi untuk mengisi pilihan dalam dropdown penapis
     function populateFilters() {
-        const jenis = new Set(allSchoolData.map(item => item.jenis_sekolah).filter(Boolean));
+        // Keluarkan "SRK" dari senarai Jenis Sekolah
+        const jenis = new Set(allSchoolData.map(item => item.jenis_sekolah).filter(val => val && val.trim().toUpperCase() !== 'SRK'));
         const kategori = new Set(allSchoolData.map(item => item.kategori_institusi).filter(Boolean));
         const lokasi = new Set(allSchoolData.map(item => item.lokasi_sekolah).filter(Boolean));
         const ptis = new Set(allSchoolData.map(item => item.nama_ptis).filter(Boolean));
-
-        jenis.forEach(val => jenisFilter.innerHTML += `<option value="${val}">${val}</option>`);
-        kategori.forEach(val => kategoriFilter.innerHTML += `<option value="${val}">${val}</option>`);
-        lokasi.forEach(val => lokasiFilter.innerHTML += `<option value="${val}">${val}</option>`);
-        ptis.forEach(val => ptisFilter.innerHTML += `<option value="${val}">${val}</option>`);
+        
+        const populateSelect = (selectEl, options) => {
+            options.forEach(val => selectEl.innerHTML += `<option value="${val}">${val}</option>`);
+        };
+        
+        populateSelect(jenisFilter, jenis);
+        populateSelect(kategoriFilter, kategori);
+        populateSelect(lokasiFilter, lokasi);
+        populateSelect(ptisFilter, ptis);
     }
-
-    // Fungsi untuk memasang event listener pada input penapis
+    
     function setupEventListeners() {
-        [searchInput, jenisFilter, kategoriFilter, lokasiFilter, ptisFilter].forEach(element => {
-            element.addEventListener('input', handleFilterChange); // 'input' lebih responsif untuk carian
-        });
+        const filters = [jenisFilter, kategoriFilter, lokasiFilter, ptisFilter];
+        searchInput.addEventListener('input', handleFilterChange);
+        filters.forEach(filter => filter.addEventListener('change', handleFilterChange));
+        resetButton.addEventListener('click', resetAllFilters);
     }
 
-    // Fungsi yang mengendalikan perubahan pada mana-mana penapis
+    function resetAllFilters() {
+        searchInput.value = '';
+        // Kosongkan semua pilihan dalam dropdown multi-pilihan
+        [jenisFilter, kategoriFilter, lokasiFilter, ptisFilter].forEach(select => {
+            Array.from(select.options).forEach(option => option.selected = false);
+        });
+        displayData(allSchoolData); // Papar semula semua data
+    }
+
+    // Fungsi bantuan untuk mendapatkan nilai dari multi-select
+    function getSelectedValues(selectElement) {
+        return Array.from(selectElement.selectedOptions).map(option => option.value);
+    }
+
     function handleFilterChange() {
         const searchTerm = searchInput.value.toLowerCase();
-        const jenis = jenisFilter.value;
-        const kategori = kategoriFilter.value;
-        const lokasi = lokasiFilter.value;
-        const ptis = ptisFilter.value;
+        const selectedJenis = getSelectedValues(jenisFilter);
+        const selectedKategori = getSelectedValues(kategoriFilter);
+        const selectedLokasi = getSelectedValues(lokasiFilter);
+        const selectedPtis = getSelectedValues(ptisFilter);
         
         const filteredData = allSchoolData.filter(item => {
             const searchMatch = searchTerm === '' ||
-                item.nama_sekolah.toLowerCase().includes(searchTerm) ||
-                item.kod_sekolah.toLowerCase().includes(searchTerm) ||
-                item.nama_pgb.toLowerCase().includes(searchTerm);
+                (item.nama_sekolah && item.nama_sekolah.toLowerCase().includes(searchTerm)) ||
+                (item.kod_sekolah && item.kod_sekolah.toLowerCase().includes(searchTerm)) ||
+                (item.nama_pgb && item.nama_pgb.toLowerCase().includes(searchTerm));
 
-            return searchMatch &&
-                   (jenis === '' || item.jenis_sekolah === jenis) &&
-                   (kategori === '' || item.kategori_institusi === kategori) &&
-                   (lokasi === '' || item.lokasi_sekolah === lokasi) &&
-                   (ptis === '' || item.nama_ptis === ptis);
+            const jenisMatch = selectedJenis.length === 0 || selectedJenis.includes(item.jenis_sekolah);
+            const kategoriMatch = selectedKategori.length === 0 || selectedKategori.includes(item.kategori_institusi);
+            const lokasiMatch = selectedLokasi.length === 0 || selectedLokasi.includes(item.lokasi_sekolah);
+            const ptisMatch = selectedPtis.length === 0 || selectedPtis.includes(item.nama_ptis);
+
+            return searchMatch && jenisMatch && kategoriMatch && lokasiMatch && ptisMatch;
         });
-
         displayData(filteredData);
     }
     
-    // Fungsi untuk memaparkan data yang ditapis (jadual, statistik, dan carta)
     function displayData(data) {
-        // Kemas kini jadual
         tableBody.innerHTML = '';
         if (data.length > 0) {
             data.forEach(item => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${item.bil}</td>
-                    <td>${item.kod_sekolah}</td>
-                    <td>${item.nama_sekolah}</td>
-                    <td>${item.nama_pgb}</td>
-                    <td>${item.no_hp_pgb}</td>
-                    <td>${item.email_pgb}</td>
-                    <td>${item.nama_gict}</td>
-                    <td>${item.alamat_sekolah}</td>
+                    <td>${item.bil || ''}</td>
+                    <td>${item.kod_sekolah || ''}</td>
+                    <td>${item.nama_sekolah || ''}</td>
+                    <td>${item.nama_pgb || ''}</td>
+                    <td>${item.no_hp_pgb || ''}</td>
+                    <td>${item.email_pgb || ''}</td>
+                    <td>${item.nama_gict || ''}</td>
+                    <td>${item.alamat_sekolah || ''}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -344,63 +427,51 @@
             dataTable.style.display = 'none';
             noResultsElement.style.display = 'block';
         }
-
-        // Kemas kini statistik dan carta
         updateStatsAndCharts(data);
     }
 
-    // FUNGSI DIKEMAS KINI UNTUK MENAMBAH CARTA JAWATAN
     function updateStatsAndCharts(data) {
-        // 1. Kotak Jumlah Sekolah
+        // Kotak Statistik
         document.getElementById('jumlahSekolah').textContent = data.length;
-
-        // 2. Carta Jantina
+        
+        const countJawatan = (jawatan) => data.filter(item => item.jawatan_pgb && item.jawatan_pgb.trim().toLowerCase() === jawatan).length;
+        document.getElementById('jumlahPengetua').textContent = countJawatan('pengetua');
+        document.getElementById('jumlahGuruBesar').textContent = countJawatan('guru besar');
+        document.getElementById('jumlahTiadaPengisian').textContent = data.filter(item => !item.jawatan_pgb || item.jawatan_pgb.trim() === '').length;
+        
+        // Carta
         const jantinaCounts = countByProperty(data, 'jantina_pgb');
         renderChart('jantinaChart', 'pie', jantinaCounts, 'PGB Mengikut Jantina');
 
-        // 3. CARTA BAHARU: Jawatan
         const jawatanCounts = countByProperty(data, 'jawatan_pgb');
         renderChart('jawatanChart', 'pie', jawatanCounts, 'Mengikut Jawatan');
 
-        // 4. Carta Jenis Sekolah
         const jenisCounts = countByProperty(data, 'jenis_sekolah');
-        renderChart('jenisSekolahChart', 'doughnut', jenisCounts, 'Mengikut Jenis Sekolah');
+        renderChart('jenisSekolahChart', 'bar', jenisCounts, 'Mengikut Jenis Sekolah');
 
-        // 5. Carta Kategori Institusi
         const kategoriCounts = countByProperty(data, 'kategori_institusi');
-        renderChart('kategoriInstitusiChart', 'bar', kategoriCounts, 'Mengikut Kategori');
+        renderChart('kategoriInstitusiChart', 'bar', kategoriCounts, 'Mengikut Kategori', { indexAxis: 'y' });
         
-        // 6. Carta Lokasi Sekolah
         const lokasiCounts = countByProperty(data, 'lokasi_sekolah');
         renderChart('lokasiSekolahChart', 'bar', lokasiCounts, 'Mengikut Lokasi');
     }
 
-    // Fungsi bantuan untuk mengira item unik dalam data
     function countByProperty(data, property) {
         return data.reduce((acc, item) => {
-            const key = item[property] || 'Tidak Dinyatakan';
-            acc[key] = (acc[key] || 0) + 1;
+            const key = item[property] ? item[property].trim() : 'Tidak Dinyatakan';
+            if (key) acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {});
     }
-
-    // Fungsi generik untuk mencipta atau mengemas kini carta
-    function renderChart(canvasId, type, data, label) {
+    
+    function renderChart(canvasId, type, data, label, extraOptions = {}) {
         const ctx = document.getElementById(canvasId).getContext('2d');
-        
-        // Musnahkan carta sedia ada jika wujud untuk mengelakkan pertindihan
-        if (chartInstances[canvasId]) {
-            chartInstances[canvasId].destroy();
-        }
+        if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
 
-        // Warna yang menarik
-        const backgroundColors = [
-            '#2962ff', '#4caf50', '#ffc107', '#f44336', '#9c27b0',
-            '#00bcd4', '#ff9800', '#e91e63', '#3f51b5', '#cddc39'
-        ];
+        const backgroundColors = ['#2962ff', '#4caf50', '#ffc107', '#f44336', '#9c27b0', '#00bcd4', '#ff9800', '#e91e63', '#3f51b5', '#cddc39'];
 
         chartInstances[canvasId] = new Chart(ctx, {
-            type: type, // 'pie', 'doughnut', 'bar'
+            type: type,
             data: {
                 labels: Object.keys(data),
                 datasets: [{
@@ -416,19 +487,11 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: type === 'bar' ? false : true, // Sembunyikan legend untuk carta bar
+                        display: type !== 'bar',
                         position: 'bottom',
                     }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        display: type === 'bar' ? true : false // Hanya tunjuk paksi-y untuk carta bar
-                    },
-                    x: {
-                        display: type === 'bar' ? true : false
-                    }
-                }
+                ...extraOptions // Gabungkan opsyen tambahan seperti indexAxis
             }
         });
     }
