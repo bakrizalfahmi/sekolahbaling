@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direktori Sekolah Interaktif</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Animasi untuk kad dan statistik */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 lg:p-6">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-3xl lg:text-4xl font-extrabold text-gray-800">Direktori Sekolah PPD</h1>
+            <p class="text-gray-600 mt-1">Papan Pemuka Analitik dan Direktori</p>
+        </header>
+
+        <!-- Bahagian Statistik -->
+        <div id="stats-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+            <!-- Statistik akan dijana oleh JS -->
+        </div>
+
+        <!-- Bahagian Tapisan -->
+        <div class="bg-white p-4 rounded-xl shadow-md mb-6 sticky top-2 z-20">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-center">
+                <input type="text" id="searchInput" placeholder="🔍 Cari nama/kod sekolah..." class="md:col-span-2 lg:col-span-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="filter-jawatan" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                <select id="filter-jenis" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                <select id="filter-kategori" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                <select id="filter-lokasi" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                <button id="resetButton" class="lg:col-start-6 w-full bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600 transition-colors">Set Semula</button>
+            </div>
+        </div>
+
+        <!-- Status & Direktori Kad -->
+        <div id="status-text" class="text-center py-10 text-lg text-gray-500">Memuat turun data dari server...</div>
+        <div id="directory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <!-- Kad sekolah akan dijana oleh JS -->
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- GUNAKAN URL WEB APP ANDA YANG TERKINI ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhP1VkdP_FezzQbVAHHhTXwUk4y_L2aPQXnL4eJJstciHR7LJsbmAYX36SN1N6AJbm3Q/exec';
+
+    const statsContainer = document.getElementById('stats-container');
+    const directoryGrid = document.getElementById('directory-grid');
+    const statusText = document.getElementById('status-text');
+    const searchInput = document.getElementById('searchInput');
+    const filterJawatan = document.getElementById('filter-jawatan');
+    const filterJenis = document.getElementById('filter-jenis');
+    const filterKategori = document.getElementById('filter-kategori');
+    const filterLokasi = document.getElementById('filter-lokasi');
+    const resetButton = document.getElementById('resetButton');
+
+    let allSchoolsData = [];
+
+    // Fungsi untuk mendapatkan warna berdasarkan jenis sekolah
+    const getColorForSchoolType = (type) => {
+        const lowerType = String(type).toLowerCase();
+        if (lowerType.includes('sekolah menengah')) return 'border-l-4 border-blue-500 bg-blue-50';
+        if (lowerType.includes('sekolah kebangsaan')) return 'border-l-4 border-green-500 bg-green-50';
+        if (lowerType.includes('sjkc') || lowerType.includes('cina')) return 'border-l-4 border-red-500 bg-red-50';
+        if (lowerType.includes('sjkt') || lowerType.includes('tamil')) return 'border-l-4 border-orange-500 bg-orange-50';
+        if (lowerType.includes('agama')) return 'border-l-4 border-purple-500 bg-purple-50';
+        return 'border-l-4 border-gray-400 bg-gray-50';
+    };
+    
+    // Fungsi untuk menjana kad statistik
+    const createStatCard = (title, value, color) => {
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl shadow-sm fade-in ${color}`;
+        card.innerHTML = `
+            <div class="text-2xl lg:text-3xl font-bold">${value}</div>
+            <div class="text-sm font-medium uppercase truncate">${title}</div>
+        `;
+        return card;
+    };
+
+    // Fungsi untuk mengira dan memaparkan statistik
+    const updateStats = (data) => {
+        statsContainer.innerHTML = ''; // Kosongkan
+        
+        const total = data.length;
+        const byJenis = data.reduce((acc, sch) => { if(sch.jenis_sekolah) acc[sch.jenis_sekolah] = (acc[sch.jenis_sekolah] || 0) + 1; return acc; }, {});
+        const byKategori = data.reduce((acc, sch) => { if(sch.kategori_institusi) acc[sch.kategori_institusi] = (acc[sch.kategori_institusi] || 0) + 1; return acc; }, {});
+        const byLokasi = data.reduce((acc, sch) => { if(sch.lokasi_sekolah) acc[sch.lokasi_sekolah] = (acc[sch.lokasi_sekolah] || 0) + 1; return acc; }, {});
+        const byJantina = data.reduce((acc, sch) => { if(sch.jantina_pgb) acc[sch.jantina_pgb] = (acc[sch.jantina_pgb] || 0) + 1; return acc; }, {});
+        
+        statsContainer.appendChild(createStatCard('Jumlah Sekolah', total, 'bg-indigo-100 text-indigo-800'));
+        
+        Object.entries(byJantina).forEach(([key, value]) => {
+            if(key) statsContainer.appendChild(createStatCard(`Jantina ${key}`, value, 'bg-pink-100 text-pink-800'));
+        });
+        Object.entries(byJenis).forEach(([key, value]) => {
+             if(key) statsContainer.appendChild(createStatCard(key, value, 'bg-green-100 text-green-800'));
+        });
+        Object.entries(byKategori).forEach(([key, value]) => {
+             if(key) statsContainer.appendChild(createStatCard(key, value, 'bg-yellow-100 text-yellow-800'));
+        });
+         Object.entries(byLokasi).forEach(([key, value]) => {
+             if(key) statsContainer.appendChild(createStatCard(key, value, 'bg-sky-100 text-sky-800'));
+        });
+    };
+
+    // Fungsi untuk mengisi pilihan dropdown
+    const populateFilters = (data) => {
+        const createOptions = (selectElement, dataKey, defaultLabel) => {
+            const uniqueValues = [...new Set(data.map(item => item[dataKey]).filter(Boolean))].sort();
+            selectElement.innerHTML = `<option value="">-- Semua ${defaultLabel} --</option>`;
+            uniqueValues.forEach(value => {
+                selectElement.innerHTML += `<option value="${value}">${value}</option>`;
+            });
+        };
+        createOptions(filterJawatan, 'jawatan_pgb', 'Jawatan');
+        createOptions(filterJenis, 'jenis_sekolah', 'Jenis Sekolah');
+        createOptions(filterKategori, 'kategori_institusi', 'Kategori');
+        createOptions(filterLokasi, 'lokasi_sekolah', 'Lokasi');
+    };
+
+    // Fungsi untuk memaparkan kad sekolah
+    const renderCards = (data) => {
+        directoryGrid.innerHTML = '';
+        if (data.length === 0) {
+            statusText.textContent = 'Tiada data sepadan ditemui.';
+            statusText.style.display = 'block';
+            directoryGrid.style.display = 'none';
+            return;
+        }
+        statusText.style.display = 'none';
+        directoryGrid.style.display = 'grid';
+
+        data.forEach(school => {
+            const card = document.createElement('div');
+            const colorClass = getColorForSchoolType(school.jenis_sekolah);
+            card.className = `p-4 rounded-lg shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 fade-in ${colorClass}`;
+            card.innerHTML = `
+                <div class="font-bold text-md text-gray-800 truncate" title="${school.nama_sekolah}">${school.nama_sekolah}</div>
+                <div class="text-sm text-gray-500 mb-3">${school.kod_sekolah}</div>
+                <div class="text-xs space-y-2 text-gray-700">
+                    <p><strong class="font-medium">PGB:</strong> ${school.nama_pgb || '-'}</p>
+                    <p><strong class="font-medium">Guru ICT:</strong> ${school.nama_gict || '-'}</p>
+                    <p><strong class="font-medium">Tel Sekolah:</strong> ${school.telefon_sekolah || '-'}</p>
+                    <p><strong class="font-medium">Emel Sekolah:</strong> ${school.email_sekolah || '-'}</p>
+                </div>
+            `;
+            directoryGrid.appendChild(card);
+        });
+    };
+    
+    // Fungsi untuk mengaplikasikan semua tapisan
+    const applyFilters = () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const jawatan = filterJawatan.value;
+        const jenis = filterJenis.value;
+        const kategori = filterKategori.value;
+        const lokasi = filterLokasi.value;
+
+        const filteredData = allSchoolsData.filter(school => {
+            const searchMatch = searchTerm === '' ||
+                                String(school.nama_sekolah).toLowerCase().includes(searchTerm) ||
+                                String(school.kod_sekolah).toLowerCase().includes(searchTerm);
+            
+            const jawatanMatch = jawatan === '' || school.jawatan_pgb === jawatan;
+            const jenisMatch = jenis === '' || school.jenis_sekolah === jenis;
+            const kategoriMatch = kategori === '' || school.kategori_institusi === kategori;
+            const lokasiMatch = lokasi === '' || school.lokasi_sekolah === lokasi;
+
+            return searchMatch && jawatanMatch && jenisMatch && kategoriMatch && lokasiMatch;
+        });
+        renderCards(filteredData);
+    };
+
+    const resetAllFilters = () => {
+        searchInput.value = '';
+        filterJawatan.value = '';
+        filterJenis.value = '';
+        filterKategori.value = '';
+        filterLokasi.value = '';
+        renderCards(allSchoolsData);
+    };
+
+    // Fungsi utama untuk mengambil data
+    const fetchData = async () => {
+        try {
+            const response = await fetch(SCRIPT_URL);
+            if (!response.ok) {
+                // Ralat rangkaian atau HTTP, bukan JSON
+                throw new Error(`Ralat Rangkaian: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (data.error) {
+                // Ralat yang dihantar oleh Apps Script
+                throw new Error(`Ralat API: ${data.error}`);
+            }
+            
+            allSchoolsData = data;
+            
+            updateStats(allSchoolsData);
+            populateFilters(allSchoolsData);
+            renderCards(allSchoolsData);
+            
+            // Tambah event listeners selepas data sedia
+            [searchInput, filterJawatan, filterJenis, filterKategori, filterLokasi].forEach(el => {
+                const eventType = el.tagName === 'INPUT' ? 'keyup' : 'change';
+                el.addEventListener(eventType, applyFilters);
+            });
+            resetButton.addEventListener('click', resetAllFilters);
+
+        } catch (error) {
+            let friendlyMessage = 'Gagal memuatkan data. Sila semak sambungan internet anda.';
+            if (error instanceof TypeError) {
+                friendlyMessage += ' Ini mungkin disebabkan oleh ralat rangkaian atau sekatan pelayar (CORS).';
+            }
+            statusText.innerHTML = `${friendlyMessage}<br><span class="text-sm text-gray-600 mt-2 block">Pastikan URL Web App dalam skrip adalah betul dan telah di-'deploy' semula dengan kebenaran "Anyone".</span>`;
+            statusText.classList.add('text-red-600');
+            console.error('Ralat terperinci:', error);
+        }
+    };
+
+    fetchData();
+});
+</script>
+
+</body>
+</html>
